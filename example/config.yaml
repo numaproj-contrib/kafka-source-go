@@ -2,9 +2,10 @@ apiVersion: v1
 data:
   kafka-config.yaml: |
     brokers:
-      - kafka-broker:9092
-    topic: test-topic
-    consumergroupname: test-consumer-group
+      - 'keran-kafka-0.keran-kafka-headless.default.svc.cluster.local:9092'
+      - 'keran-kafka-1.keran-kafka-headless.default.svc.cluster.local:9092'
+    topic: input-topic-partition-debug
+    consumergroupname: test-consumer-group-1
     tls: null
     config: ""
     sasl: null

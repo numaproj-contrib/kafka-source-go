@@ -8,7 +8,7 @@ build: test
 
 .PHONY: image
 image: build
-	docker build -t "quay.io/numaio/numaflow-source/kafka-source-go:v0.1.2" --target kafka-source .
+	docker build -t "quay.io/numaio/numaflow-source/kafka-source-go:v0.1.4" --target kafka-source .
 
 clean:
 	-rm -rf ./dist

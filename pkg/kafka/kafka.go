@@ -26,8 +26,6 @@ type kafkaSource struct {
 	handler *consumerHandler
 	// size of the buffer that holds consumed but yet to be forwarded messages
 	handlerBuffer int
-	// read timeout for the from buffer
-	readTimeout time.Duration
 	// client used to calculate pending messages
 	adminClient sarama.ClusterAdmin
 	// sarama client
@@ -69,8 +67,7 @@ func New(c *config.Config, opts ...Option) (*kafkaSource, error) {
 		topic:           c.Topic,
 		brokers:         c.Brokers,
 		consumerGrpName: c.ConsumerGroupName,
-		readTimeout:     1 * time.Second, // default timeout
-		handlerBuffer:   100,             // default buffer size for kafka reads
+		handlerBuffer:   100, // default buffer size for kafka reads
 	}
 	for _, o := range opts {
 		if err := o(k); err != nil {
@@ -169,12 +166,9 @@ func (k *kafkaSource) Read(_ context.Context, readRequest sourcesdk.ReadRequest,
 		case <-ctx.Done():
 			// If the context is done, the read request is timed out.
 			return
-		default:
+		case m := <-k.handler.messages:
 			// Otherwise, we read the data from the source and send the data to the message channel.
-			messageCh <- sourcesdk.NewMessage(
-				[]byte("test-payload"),
-				sourcesdk.NewOffset([]byte("test-offset"), "0"),
-				time.Now())
+			messageCh <- toSDKMessage(m)
 		}
 	}
 }
@@ -238,4 +232,11 @@ func (k *kafkaSource) startConsumer() {
 	wg.Wait()
 	_ = client.Close()
 	close(k.stopCh)
+}
+
+func toSDKMessage(m *sarama.ConsumerMessage) sourcesdk.Message {
+	return sourcesdk.NewMessage(
+		m.Value,
+		sourcesdk.NewOffset([]byte("test-offset"), "0"),
+		time.Now())
 }

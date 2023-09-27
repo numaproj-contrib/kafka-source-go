@@ -14,7 +14,7 @@ spec:
       source:
         udsource:
           container:
-            image: quay.io/numaio/numaflow-source/kafka-source-go:v0.1.4
+            image: quay.io/numaio/numaflow-source/kafka-source-go:v0.1.5
             volumeMounts:
               - name: my-config-mount
                 mountPath: /etc/config

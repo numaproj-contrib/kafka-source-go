@@ -1,0 +1,13 @@
+apiVersion: v1
+data:
+  kafka-config.yaml: |
+    brokers:
+      - kafka-broker:9092
+    topic: test-topic
+    consumergroupname: test-consumer-group
+    tls: null
+    config: ""
+    sasl: null
+kind: ConfigMap
+metadata:
+  name: kafka-config-map

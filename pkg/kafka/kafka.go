@@ -151,8 +151,37 @@ func (k *kafkaSource) Start() {
 
 // Pending returns the number of pending records.
 func (k *kafkaSource) Pending(_ context.Context) int64 {
-	// Pending is not supported for NATS for now, returning -1 to indicate pending is not available.
-	return -1
+	if k.adminClient == nil || k.saramaClient == nil {
+		return -1
+	}
+	partitions, err := k.saramaClient.Partitions(k.topic)
+	if err != nil {
+		return -1
+	}
+	totalPending := int64(0)
+	rep, err := k.adminClient.ListConsumerGroupOffsets(k.consumerGrpName, map[string][]int32{k.topic: partitions})
+	if err != nil {
+		err := k.refreshAdminClient()
+		if err != nil {
+			return -1
+		}
+		return -1
+	}
+	for _, partition := range partitions {
+		block := rep.GetBlock(k.topic, partition)
+		if block.Offset == -1 {
+			// Note: if there is no offset associated with the partition under the consumer group, offset fetch sets the offset field to -1.
+			// This is not an error and usually means that there has been no data published to this particular partition yet.
+			// In this case, we can safely skip this partition from the pending calculation.
+			continue
+		}
+		partitionOffset, err := k.saramaClient.GetOffset(k.topic, partition, sarama.OffsetNewest)
+		if err != nil {
+			return -1
+		}
+		totalPending += partitionOffset - block.Offset
+	}
+	return totalPending
 }
 
 func (k *kafkaSource) Read(_ context.Context, readRequest sourcesdk.ReadRequest, messageCh chan<- sourcesdk.Message) {
@@ -175,7 +204,25 @@ func (k *kafkaSource) Read(_ context.Context, readRequest sourcesdk.ReadRequest,
 
 // Ack acknowledges the data from the source.
 func (k *kafkaSource) Ack(_ context.Context, request sourcesdk.AckRequest) {
-	// Ack is a no-op for the NATS source.
+	// we want to block the handler from exiting if there are any inflight acks.
+	k.handler.inflightacks = make(chan bool)
+	defer close(k.handler.inflightacks)
+
+	for _, offset := range request.Offsets() {
+		kOffset, err := ToKafkaOffset(&offset)
+		if err != nil {
+			k.logger.Panic("Unable to convert offset to kafka offset", zap.Error(err))
+		}
+		topic := kOffset.Topic()
+
+		// we need to mark the offset of the next message to read
+		pOffset, err := kOffset.Sequence()
+		if err != nil {
+			k.logger.Error("Unable to extract partition offset of type int64 from the supplied offset. skipping and continuing", zap.String("supplied-offset", kOffset.String()), zap.Error(err))
+			continue
+		}
+		k.handler.sess.MarkOffset(topic, kOffset.PartitionIdx(), pOffset, "")
+	}
 }
 
 func (k *kafkaSource) Close() error {
@@ -234,9 +281,25 @@ func (k *kafkaSource) startConsumer() {
 	close(k.stopCh)
 }
 
+// refreshAdminClient refreshes the admin client
+func (k *kafkaSource) refreshAdminClient() error {
+	if _, err := k.saramaClient.RefreshController(); err != nil {
+		return fmt.Errorf("failed to refresh controller, %w", err)
+	}
+	// we are not closing the old admin client because it will close the underlying sarama client as well
+	// it is safe to not close the admin client,
+	// since we are using the same sarama client, we will not leak any resources(tcp connections)
+	admin, err := sarama.NewClusterAdminFromClient(k.saramaClient)
+	if err != nil {
+		return fmt.Errorf("failed to create new admin client, %w", err)
+	}
+	k.adminClient = admin
+	return nil
+}
+
 func toSDKMessage(m *sarama.ConsumerMessage) sourcesdk.Message {
 	return sourcesdk.NewMessage(
 		m.Value,
-		sourcesdk.NewOffset([]byte("test-offset"), "0"),
+		GenerateSourceOffset(m),
 		time.Now())
 }

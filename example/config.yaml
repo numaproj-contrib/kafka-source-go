@@ -1,5 +1,7 @@
 apiVersion: v1
 data:
+  # kafka-config.yaml is the config file that the Kafka source uses to connect to Kafka.
+  # TODO - add link to source code.
   kafka-config.yaml: |
     brokers:
       - 'keran-kafka-0.keran-kafka-headless.default.svc.cluster.local:9092'

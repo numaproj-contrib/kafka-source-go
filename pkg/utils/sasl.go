@@ -9,6 +9,10 @@ import (
 	"github.com/numaproj-contrib/kafka-source-go/pkg/config"
 )
 
+/**
+ * This entire file is a copy of https://github.com/numaproj/numaflow/blob/main/pkg/shared/util/sasl_config.go with small modifications
+ */
+
 // GetSASL is a utility function to get sarama.Config.Net.SASL
 func GetSASL(saslConfig *config.SASL, reader VolumeReader) (*struct {
 	Enable                   bool

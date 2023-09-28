@@ -9,6 +9,12 @@ import (
 	"github.com/numaproj-contrib/kafka-source-go/pkg/utils"
 )
 
+/**
+ * This entire file is a copy of https://github.com/numaproj/numaflow/blob/main/pkg/sources/kafka/handler.go with small modifications
+ */
+
+// TODO - Add unit tests for this file
+
 // consumerHandler struct
 type consumerHandler struct {
 	inflightacks chan bool

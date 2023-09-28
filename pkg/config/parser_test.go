@@ -19,7 +19,6 @@ func TestConfigParser_UnParseThenParse(t *testing.T) {
 		}
 		configStr, err := parser.UnParse(testConfig)
 		assert.NoError(t, err)
-		println(configStr)
 		config, err := parser.Parse(configStr)
 		assert.NoError(t, err)
 		assert.Equal(t, testConfig, config)

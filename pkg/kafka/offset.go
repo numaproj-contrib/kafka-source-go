@@ -9,6 +9,15 @@ import (
 	sourcesdk "github.com/numaproj/numaflow-go/pkg/sourcer"
 )
 
+// To translate a kafka offset to a source offset, we need to store the topic name, partition index and offset value
+// in the source offset value. We use the following format:
+// <topic>*<offset>
+// For example, if the topic name is "test-topic", the partition index is 0 and the offset value is 123, the source offset value will be:
+// test-topic*123
+// We use "*" as the separator because it is not allowed in a topic name.
+// The topic name can be up to 255 characters in length, and can include the following characters: a-z, A-Z, 0-9, . (dot), _ (underscore), and - (dash).
+const offsetSeparator = "*"
+
 type KafkaOffset struct {
 	offset       int64
 	partitionIdx int32
@@ -31,8 +40,8 @@ func (k *KafkaOffset) Topic() string {
 	return k.topic
 }
 
-// GenerateSourceOffset generates a source offset from a kafka message
-func GenerateSourceOffset(m *sarama.ConsumerMessage) sourcesdk.Offset {
+// GenerateSourceSdkOffset generates a source offset from a kafka message
+func GenerateSourceSdkOffset(m *sarama.ConsumerMessage) sourcesdk.Offset {
 	k := &KafkaOffset{
 		offset:       m.Offset,
 		partitionIdx: m.Partition,
@@ -41,18 +50,17 @@ func GenerateSourceOffset(m *sarama.ConsumerMessage) sourcesdk.Offset {
 	return k.ToSourceOffset()
 }
 
-// TODO - unit test it
 func ToKafkaOffset(o *sourcesdk.Offset) (*KafkaOffset, error) {
 	strVal := string(o.Value())
-	strs := strings.Split(strVal, "*")
+	strs := strings.Split(strVal, offsetSeparator)
 	if len(strs) != 2 {
-		return nil, fmt.Errorf("invalid offset value %s", strVal)
+		return nil, fmt.Errorf("invalid offset value %s, the value cannot be divided to topic and offset", strVal)
 	}
 	var offset int
 	var err error
 	var partitionIdx int
 	if offset, err = strconv.Atoi(strs[1]); err != nil {
-		return nil, fmt.Errorf("invalid offset value %s", strVal)
+		return nil, fmt.Errorf("invalid offset value %s", strs[1])
 	}
 	if partitionIdx, err = strconv.Atoi(o.PartitionId()); err != nil {
 		return nil, fmt.Errorf("invalid partition id %s", o.PartitionId())
@@ -65,6 +73,6 @@ func ToKafkaOffset(o *sourcesdk.Offset) (*KafkaOffset, error) {
 }
 
 func (k *KafkaOffset) ToSourceOffset() sourcesdk.Offset {
-	value := []byte(fmt.Sprintf("%s*%d", k.topic, k.offset))
+	value := []byte(fmt.Sprintf("%s%s%d", k.topic, offsetSeparator, k.offset))
 	return sourcesdk.NewOffset(value, strconv.Itoa(int(k.partitionIdx)))
 }

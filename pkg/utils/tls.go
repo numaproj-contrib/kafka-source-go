@@ -9,6 +9,10 @@ import (
 	"github.com/numaproj-contrib/kafka-source-go/pkg/config"
 )
 
+/**
+ * This entire file is a copy of https://github.com/numaproj/numaflow/blob/main/pkg/shared/util/tls_config.go with small modifications
+ */
+
 // GetTLSConfig is a utility function to get tls.Config
 func GetTLSConfig(config *config.TLS, reader VolumeReader) (*tls.Config, error) {
 	if config == nil {

@@ -24,7 +24,6 @@ func main() {
 
 	var c *config.Config
 	var err error
-
 	c, err = getConfigFromEnvVars(format)
 	if err != nil {
 		c, err = getConfigFromFile(format)
@@ -37,9 +36,7 @@ func main() {
 		logger.Info("Successfully parsed config from env vars")
 	}
 
-	_ = c
 	logger.Info("Starting Kafka source...")
-
 	kafkaSrc, err := kafka.New(c)
 	if err != nil {
 		logger.Panic("Failed to create kafka source : ", err)
@@ -54,7 +51,7 @@ func main() {
 func getConfigFromFile(format string) (*config.Config, error) {
 	if format == "yaml" {
 		parser := &config.YAMLConfigParser{}
-		content, err := os.ReadFile(fmt.Sprintf("%s/kafka-config.yaml", utils.ConfigVolumePath))
+		content, err := os.ReadFile(fmt.Sprintf("%s/%s", utils.ConfigVolumePath, utils.ConfigFileName))
 		if err != nil {
 			return nil, err
 		}

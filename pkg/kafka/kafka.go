@@ -3,8 +3,8 @@ package kafka
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
-	"time"
 
 	"github.com/IBM/sarama"
 	sourcesdk "github.com/numaproj/numaflow-go/pkg/sourcer"
@@ -13,6 +13,14 @@ import (
 	"github.com/numaproj-contrib/kafka-source-go/pkg/config"
 	"github.com/numaproj-contrib/kafka-source-go/pkg/utils"
 )
+
+/**
+ * This entire file is a re-implementation of https://github.com/numaproj/numaflow/blob/main/pkg/sources/kafka/reader.go
+ */
+
+// TODO - Add unit tests for this file
+
+const pendingNotAvailable = int64(math.MinInt64)
 
 type kafkaSource struct {
 	consumerGrpName string
@@ -145,27 +153,26 @@ func (k *kafkaSource) Start() {
 	go k.startConsumer()
 	// wait for the consumer to setup.
 	<-k.handler.ready
-	k.logger.Info("Consumer ready. Starting kafka reader...")
-	return
+	k.logger.Info("Consumer ready.")
 }
 
 // Pending returns the number of pending records.
 func (k *kafkaSource) Pending(_ context.Context) int64 {
 	if k.adminClient == nil || k.saramaClient == nil {
-		return -1
+		return pendingNotAvailable
 	}
 	partitions, err := k.saramaClient.Partitions(k.topic)
 	if err != nil {
-		return -1
+		return pendingNotAvailable
 	}
 	totalPending := int64(0)
 	rep, err := k.adminClient.ListConsumerGroupOffsets(k.consumerGrpName, map[string][]int32{k.topic: partitions})
 	if err != nil {
 		err := k.refreshAdminClient()
 		if err != nil {
-			return -1
+			return pendingNotAvailable
 		}
-		return -1
+		return pendingNotAvailable
 	}
 	for _, partition := range partitions {
 		block := rep.GetBlock(k.topic, partition)
@@ -177,7 +184,7 @@ func (k *kafkaSource) Pending(_ context.Context) int64 {
 		}
 		partitionOffset, err := k.saramaClient.GetOffset(k.topic, partition, sarama.OffsetNewest)
 		if err != nil {
-			return -1
+			return pendingNotAvailable
 		}
 		totalPending += partitionOffset - block.Offset
 	}
@@ -226,6 +233,17 @@ func (k *kafkaSource) Ack(_ context.Context, request sourcesdk.AckRequest) {
 }
 
 func (k *kafkaSource) Close() error {
+	k.logger.Info("Closing kafka reader...")
+	// finally, shut down the client
+	k.cancelFn()
+	if k.adminClient != nil {
+		// closes the underlying sarama client as well.
+		if err := k.adminClient.Close(); err != nil {
+			k.logger.Error("Error in closing kafka admin client", zap.Error(err))
+		}
+	}
+	<-k.stopCh
+	k.logger.Info("Kafka reader closed")
 	return nil
 }
 
@@ -300,6 +318,6 @@ func (k *kafkaSource) refreshAdminClient() error {
 func toSDKMessage(m *sarama.ConsumerMessage) sourcesdk.Message {
 	return sourcesdk.NewMessage(
 		m.Value,
-		GenerateSourceOffset(m),
-		time.Now())
+		GenerateSourceSdkOffset(m),
+		m.Timestamp)
 }

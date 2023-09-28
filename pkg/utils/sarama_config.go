@@ -8,6 +8,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+/**
+ * This entire file is a copy of https://github.com/numaproj/numaflow/blob/main/pkg/shared/util/saramaconfig.go with small modifications
+ */
+
 // GetSaramaConfigFromYAMLString parse yaml string to sarama.config
 func GetSaramaConfigFromYAMLString(yaml string) (*sarama.Config, error) {
 	v := viper.New()

@@ -14,9 +14,11 @@ spec:
       source:
         udsource:
           container:
-            image: quay.io/numaio/numaflow-source/kafka-source-go:v0.1.7
+            image: quay.io/numaio/numaflow-source/kafka-source-go:v0.1.8
             volumeMounts:
               - name: my-config-mount
+                # /etc/config is the path where the Kafka source looks for the config file.
+                # TODO - add link to source code.
                 mountPath: /etc/config
     - name: out
       scale:

@@ -2,6 +2,10 @@ package config
 
 import corev1 "k8s.io/api/core/v1"
 
+/**
+ * This entire file is a copy of https://github.com/numaproj/numaflow/blob/main/pkg/apis/numaflow/v1alpha1/kafka_source.go with small modifications
+ */
+
 type Config struct {
 	Brokers           []string `json:"brokers,omitempty" protobuf:"bytes,1,rep,name=brokers"`
 	Topic             string   `json:"topic" protobuf:"bytes,2,opt,name=topic"`

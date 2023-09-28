@@ -18,7 +18,6 @@ spec:
             volumeMounts:
               - name: my-config-mount
                 # /etc/config is the path where the Kafka source looks for the config file.
-                # TODO - add link to source code.
                 mountPath: /etc/config
     - name: out
       scale:

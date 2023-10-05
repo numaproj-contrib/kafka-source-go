@@ -1,0 +1,3 @@
+resources:
+  - config.yaml
+  - test-pipeline.yaml

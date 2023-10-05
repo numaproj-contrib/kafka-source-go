@@ -1,0 +1,15 @@
+apiVersion: v1
+data:
+  # kafka-config.yaml is the config file that the Kafka source uses to connect to Kafka.
+  kafka-config.yaml: |
+    brokers:
+      - 'keran-kafka-0.keran-kafka-headless.default.svc.cluster.local:9092'
+      - 'keran-kafka-1.keran-kafka-headless.default.svc.cluster.local:9092'
+    topic: input-topic-partition-debug
+    consumergroupname: test-consumer-group-1
+    tls: null
+    config: ""
+    sasl: null
+kind: ConfigMap
+metadata:
+  name: kafka-config-map

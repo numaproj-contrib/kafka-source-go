@@ -1,0 +1,29 @@
+apiVersion: numaflow.numaproj.io/v1alpha1
+kind: Pipeline
+metadata:
+  name: kafka-source-e2e
+spec:
+  vertices:
+    - name: in
+      scale:
+        min: 2
+      volumes:
+        - name: my-config-mount
+          configMap:
+            name: kafka-config-map
+      source:
+        udsource:
+          container:
+            image: quay.io/numaio/numaflow-source/kafka-source-go:v0.1.8
+            volumeMounts:
+              - name: my-config-mount
+                # /etc/config is the path where the Kafka source looks for the config file.
+                mountPath: /etc/config
+    - name: out
+      scale:
+        min: 1
+      sink:
+        log: {}
+  edges:
+    - from: in
+      to: out

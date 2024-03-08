@@ -1,3 +1,5 @@
+> **Warning:** This user-defined Kafka source is currently NOT production ready. It's pending fix by https://github.com/numaproj-contrib/kafka-source-go/issues/3. Please consider using [the built-in Kafka](https://numaflow.numaproj.io/user-guide/sources/kafka/) instead. If you have a particular use case, please open an issue to let us know.
+
 # Kafka Source
 Kafka Source is a user-defined source for [Numaflow](https://numaflow.numaproj.io/)
 that facilitates reading messages from [Kafka](https://kafka.apache.org/).
